@@ -29,6 +29,7 @@ using Microsoft.Graphics.Canvas.Effects;
 using Microsoft.Graphics.Canvas.UI;
 using Microsoft.Graphics.Canvas.UI.Xaml;
 using NorthwindPhoto.Model;
+using Windows.UI.Xaml.Media.Animation;
 
 namespace NorthwindPhoto
 {
@@ -60,6 +61,11 @@ namespace NorthwindPhoto
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
+            ConnectedAnimationService
+                .GetForCurrentView()
+                .GetAnimation("Image")
+                .TryStart(CanvasControl);
+
             _photo = e.Parameter as Photo;
             _compositor = ElementCompositionPreview.GetElementVisual(this)?.Compositor;
             _propertySet = _compositor.CreatePropertySet();
@@ -71,6 +77,12 @@ namespace NorthwindPhoto
             SetupRingAnimation();
             SetupAnimation();
             SetupDialControl();
+        }
+
+        protected override void OnNavigatingFrom(NavigatingCancelEventArgs e)
+        {
+            base.OnNavigatingFrom(e);
+            ConnectedAnimationService.GetForCurrentView().PrepareToAnimate("Image", CanvasControl);
         }
 
         protected override void OnNavigatedFrom(NavigationEventArgs e)

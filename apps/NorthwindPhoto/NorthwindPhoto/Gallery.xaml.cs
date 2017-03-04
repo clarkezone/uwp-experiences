@@ -22,6 +22,7 @@ using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Navigation;
 using NorthwindPhoto.Model;
 using Windows.Foundation;
+using Windows.UI.Xaml.Media.Animation;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=234238
 
@@ -44,6 +45,7 @@ namespace NorthwindPhoto
 
         private float durationHover = 500;
         private float shadowDistance = 5;
+        private static int persistedItemIndex;
 
         public Gallery()
         {
@@ -66,8 +68,18 @@ namespace NorthwindPhoto
             // Setup Show animations. This should only play when 
             // the app is loaded first or when coming back here from collage page
 
-            ElementCompositionPreview.SetImplicitShowAnimation(args.ItemContainer, SetupDefaultShowAnimation(args.ItemIndex));
-            ElementCompositionPreview.SetImplicitHideAnimation(args.ItemContainer, SetupDefaultHideAnimation(args.ItemIndex));
+            //var itemsPanel = (ItemsWrapGrid)this.PhotoCollectionViewer.ItemsPanelRoot;
+
+            //var itemIndex = this.PhotoCollectionViewer.IndexFromContainer(args.ItemContainer);
+
+            //var relativeIndex = itemIndex - itemsPanel.FirstVisibleIndex;
+
+            //// Don't animate if we're not in the visible viewport
+            //if (itemIndex >= 0 && itemIndex >= itemsPanel.FirstVisibleIndex && itemIndex <= itemsPanel.LastVisibleIndex)
+            //{
+            //    ElementCompositionPreview.SetImplicitShowAnimation(args.ItemContainer, SetupDefaultShowAnimation(args.ItemIndex));
+            //    ElementCompositionPreview.SetImplicitHideAnimation(args.ItemContainer, SetupDefaultHideAnimation(args.ItemIndex));
+            //}
 
             //Target each item that is added to the gridView
             //TODO: Untarget when an item is unloaded.
@@ -89,6 +101,62 @@ namespace NorthwindPhoto
 
         }
 
+        private void PhotoCollectionViewer_ContainerContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)
+        {
+            args.ItemContainer.Loaded += ItemContainer_Loaded;
+        }
+
+        private void ItemContainer_Loaded(object sender, RoutedEventArgs e)
+        {
+            var itemsPanel = (ItemsWrapGrid)this.PhotoCollectionViewer.ItemsPanelRoot;
+            var itemContainer = (GridViewItem)sender;
+
+            var itemIndex = this.PhotoCollectionViewer.IndexFromContainer(itemContainer);
+
+            var relativeIndex = itemIndex - itemsPanel.FirstVisibleIndex;
+
+            var uc = itemContainer.ContentTemplateRoot as Grid;
+
+            if (itemIndex >= 0 && itemIndex >= itemsPanel.FirstVisibleIndex && itemIndex <= itemsPanel.LastVisibleIndex)
+            {
+                var itemVisual = ElementCompositionPreview.GetElementVisual(uc);
+
+                float width = (float)uc.RenderSize.Width;
+                float height = (float)uc.RenderSize.Height;
+                itemVisual.Size = new Vector2(width, height);
+                //itemVisual.CenterPoint = new Vector3(width / 2, height / 2, 0f);
+                //itemVisual.Scale = new Vector3(1, 1, 1);
+                itemVisual.Opacity = 0f;
+
+                // Create KeyFrameAnimations
+                KeyFrameAnimation offsetAnimation = _compositor.CreateScalarKeyFrameAnimation();
+                offsetAnimation.InsertExpressionKeyFrame(0f, "100");
+                offsetAnimation.InsertExpressionKeyFrame(1f, "0");
+                offsetAnimation.Duration = TimeSpan.FromMilliseconds(800);
+                offsetAnimation.DelayTime = TimeSpan.FromMilliseconds(relativeIndex * 50);
+
+                //Vector3KeyFrameAnimation scaleAnimation = _compositor.CreateVector3KeyFrameAnimation();
+                //scaleAnimation.InsertKeyFrame(0, new Vector3(1f, 1f, 0f));
+                //scaleAnimation.InsertKeyFrame(0.1f, new Vector3(0.05f, 0.05f, 0.05f));
+                //scaleAnimation.InsertKeyFrame(1f, new Vector3(1f, 1f, 0f));
+                //scaleAnimation.Duration = TimeSpan.FromMilliseconds(1000);
+                //scaleAnimation.DelayTime = TimeSpan.FromMilliseconds(relativeIndex * 100);
+
+                KeyFrameAnimation fadeAnimation = _compositor.CreateScalarKeyFrameAnimation();
+                fadeAnimation.InsertExpressionKeyFrame(0f, "0");
+                fadeAnimation.InsertExpressionKeyFrame(1f, "1");
+                fadeAnimation.Duration = TimeSpan.FromMilliseconds(400);
+                fadeAnimation.DelayTime = TimeSpan.FromMilliseconds(relativeIndex * 50);
+
+                // Start animations
+                itemVisual.StartAnimation("Offset.Y", offsetAnimation);
+                //itemVisual.StartAnimation("Scale", scaleAnimation);
+                itemVisual.StartAnimation("Opacity", fadeAnimation);
+            }
+
+            itemContainer.Loaded -= this.ItemContainer_Loaded;
+        }
+
         #region Pointer Entered / Exit
 
         public ObservableCollection<Photo> Photos { get; set; } = App.PhotoCollection;
@@ -102,10 +170,32 @@ namespace NorthwindPhoto
 
             _gridview = ElementCompositionPreview.GetElementVisual(this);
             ApplyLighting();
+
+            PhotoCollectionViewer.Loaded += async (o_, e_) =>
+            {
+                var connectedAnimation = ConnectedAnimationService
+                    .GetForCurrentView()
+                    .GetAnimation("Image");
+                if (connectedAnimation != null)
+                {
+                    var item = PhotoCollectionViewer.Items[persistedItemIndex];
+                    PhotoCollectionViewer.ScrollIntoView(item);
+                    await PhotoCollectionViewer.TryStartConnectedAnimationAsync(
+                        connectedAnimation,
+                        item,
+                        "Image"
+                    );
+                }
+            };
         }
 
         private void PhotoCollectionViewer_ItemClick(object sender, ItemClickEventArgs e)
         {
+            ConnectedAnimationService.GetForCurrentView().DefaultDuration = TimeSpan.FromSeconds(0.5);
+
+            persistedItemIndex = PhotoCollectionViewer.Items.IndexOf(e.ClickedItem);
+            PhotoCollectionViewer.PrepareConnectedAnimation("Image", e.ClickedItem, "Image");
+
             App.MainFrame.Navigate(typeof(ImageEditingPage), e.ClickedItem as Photo);
         }
 
@@ -286,5 +376,7 @@ namespace NorthwindPhoto
             return hideAnimation;
         }
         #endregion
+
+        
     }
 }
