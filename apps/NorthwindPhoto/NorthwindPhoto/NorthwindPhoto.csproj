@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>NorthwindPhoto</RootNamespace>
     <AssemblyName>NorthwindPhoto</AssemblyName>
-    <DefaultLanguage>en-US</DefaultLanguage>
+    <DefaultLanguage>en-US</DefaultLanguage> 
     <TargetPlatformIdentifier>UAP</TargetPlatformIdentifier>
     <TargetPlatformVersion>10.0.15042.0</TargetPlatformVersion>
     <TargetPlatformMinVersion>10.0.15042.0</TargetPlatformMinVersion>
