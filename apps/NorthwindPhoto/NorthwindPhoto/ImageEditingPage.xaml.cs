@@ -55,17 +55,16 @@ namespace NorthwindPhoto
         private RadialController _radialController;
         private string _selectedControl;
 
-        private CompositionScopedBatch _connectedBatch;
-
         public ImageEditingPage()
         {
             InitializeComponent();
+
+            SetupRingAnimation();
+            SetupAnimation();
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
-            _compositor = ElementCompositionPreview.GetElementVisual(this)?.Compositor;
-
             _photo = e.Parameter as Photo;
 
             var image = new BitmapImage(new Uri(_photo.Path));
@@ -75,7 +74,7 @@ namespace NorthwindPhoto
                 var animation = ConnectedAnimationService.GetForCurrentView().GetAnimation("Image");
                 animation.Completed += (s, st) =>
                 {
-                    var item = FindName("CanvasControl");
+                    //var item = FindName("CanvasControl");
 
                     Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () => {
                         CanvasControl.Opacity = 1;
@@ -93,7 +92,10 @@ namespace NorthwindPhoto
                     //ElementCompositionPreview.SetImplicitShowAnimation(CanvasControl, fadeInAnimation);
 
                 };
+                //animation.TryStart(animationTarget,new[] { TwitterLogo});
                 animation.TryStart(animationTarget);
+                
+                
             };
 
             animationTarget.Source = image;
@@ -104,22 +106,26 @@ namespace NorthwindPhoto
             _propertySet.InsertVector3("Exposure", new Vector3());
             _propertySet.InsertVector3("Blur", new Vector3());
 
-            SetupRingAnimation();
-            SetupAnimation();
-            SetupDialControl();
-        }
 
-        private void Image_ImageOpened(object sender, RoutedEventArgs e)
-        {
-            throw new NotImplementedException();
+            SetupDialControl();
         }
 
         protected override void OnNavigatingFrom(NavigatingCancelEventArgs e)
         {
-            base.OnNavigatingFrom(e);
+            Canvas.SetZIndex(this, 1);
+            var animation = _compositor.CreateScalarKeyFrameAnimation();
+            animation.Target = "Opacity";
+            animation.Duration = TimeSpan.FromSeconds(0.6);
+            animation.InsertKeyFrame(1, 0);
+            ElementCompositionPreview.SetImplicitHideAnimation(this, animation);
+
+
             animationTarget.Visibility = Visibility.Visible;
             animationTarget.Opacity = 1;
-            ConnectedAnimationService.GetForCurrentView().PrepareToAnimate("Image", animationTarget);
+            var service = ConnectedAnimationService.GetForCurrentView();
+            service.DefaultDuration = TimeSpan.FromSeconds(0.6);
+            service.PrepareToAnimate("Image", animationTarget);
+            base.OnNavigatingFrom(e);
         }
 
         protected override void OnNavigatedFrom(NavigationEventArgs e)
@@ -132,9 +138,9 @@ namespace NorthwindPhoto
             _radialController.ButtonPressed -= RadialController_ButtonPressed;
             _radialController.ButtonReleased -= RadialController_ButtonReleased;
 
-            _effect.Dispose();
-            _canvasBitmap.Dispose();
-            _canvasRenderTarget.Dispose();
+            _effect?.Dispose();
+            _canvasBitmap?.Dispose();
+            _canvasRenderTarget?.Dispose();
         }
 
         /// <summary>
@@ -342,6 +348,8 @@ namespace NorthwindPhoto
 
         private void SetupRingAnimation()
         {
+            _compositor = ElementCompositionPreview.GetElementVisual(this)?.Compositor;
+
             var scaleAnimation = _compositor.CreateVector3KeyFrameAnimation();
             scaleAnimation.InsertKeyFrame(0f, new Vector3(1f, 1f, 1f));
             scaleAnimation.InsertKeyFrame(0.5f, new Vector3(1.25f, 1.25f, 1.25f));
@@ -373,33 +381,39 @@ namespace NorthwindPhoto
             fadeInAnimation.InsertKeyFrame(1f, 1f);
             fadeInAnimation.Target = "Opacity";
             fadeInAnimation.DelayBehavior = AnimationDelayBehavior.SetInitialValueBeforeDelay;
-            fadeInAnimation.DelayTime = TimeSpan.FromMilliseconds(250);
-            fadeInAnimation.Duration = TimeSpan.FromMilliseconds(750);
+            fadeInAnimation.DelayTime = TimeSpan.FromMilliseconds(600);
+            fadeInAnimation.Duration = TimeSpan.FromMilliseconds(2000);
+
+            var offsetInAnimation = _compositor.CreateScalarKeyFrameAnimation();
+            offsetInAnimation.InsertKeyFrame(0f, 100);
+            offsetInAnimation.InsertKeyFrame(1f, 0);
+            offsetInAnimation.Target = "Translation.Y";
+            offsetInAnimation.DelayBehavior = AnimationDelayBehavior.SetInitialValueBeforeDelay;
+            offsetInAnimation.DelayTime = TimeSpan.FromMilliseconds(600);
+            offsetInAnimation.Duration = TimeSpan.FromMilliseconds(2000);
+
+            var inGroup = _compositor.CreateAnimationGroup();
+            inGroup.Add(fadeInAnimation);
+            inGroup.Add(offsetInAnimation);
 
             var fadeOutAnimation = _compositor.CreateScalarKeyFrameAnimation();
             fadeOutAnimation.InsertKeyFrame(0f, 1f);
             fadeOutAnimation.InsertKeyFrame(1f, 0f);
             fadeOutAnimation.Target = "Opacity";
-            fadeOutAnimation.Duration = TimeSpan.FromMilliseconds(1000);
+            fadeOutAnimation.Duration = TimeSpan.FromMilliseconds(600);
 
-            var offsetInAnimation = _compositor.CreateVector3KeyFrameAnimation();
-            offsetInAnimation.InsertKeyFrame(0f, new Vector3(0f, -50f, 0f));
-            offsetInAnimation.InsertKeyFrame(1f, new Vector3());
-            offsetInAnimation.Target = "Offset";
-            offsetInAnimation.Duration = TimeSpan.FromMilliseconds(250);
+            ElementCompositionPreview.SetIsTranslationEnabled(ContrastGrid, true);
+            ElementCompositionPreview.SetIsTranslationEnabled(ExposureGrid, true);
+            ElementCompositionPreview.SetIsTranslationEnabled(SaturationGrid, true);
+            ElementCompositionPreview.SetIsTranslationEnabled(BlurGrid, true);
 
-            //ElementCompositionPreview.SetImplicitShowAnimation(CanvasControl, fadeInAnimation);
-            //ElementCompositionPreview.SetImplicitShowAnimation(CanvasControl, offsetInAnimation);
 
-            fadeInAnimation.Duration = TimeSpan.FromMilliseconds(1500);
-            ElementCompositionPreview.SetImplicitShowAnimation(ContrastGrid, fadeInAnimation);
-            ElementCompositionPreview.SetImplicitShowAnimation(ExposureGrid, fadeInAnimation);
-            ElementCompositionPreview.SetImplicitShowAnimation(SaturationGrid, fadeInAnimation);
-            ElementCompositionPreview.SetImplicitShowAnimation(BlurGrid, fadeInAnimation);
+            ElementCompositionPreview.SetImplicitShowAnimation(ContrastGrid, inGroup);
+            ElementCompositionPreview.SetImplicitShowAnimation(ExposureGrid, inGroup);
+            ElementCompositionPreview.SetImplicitShowAnimation(SaturationGrid, inGroup);
+            ElementCompositionPreview.SetImplicitShowAnimation(BlurGrid, inGroup);
             ElementCompositionPreview.SetImplicitShowAnimation(TwitterLogo, fadeInAnimation);
 
-            //ElementCompositionPreview.SetImplicitHideAnimation(CanvasControl, fadeOutAnimation);
-            //ElementCompositionPreview.SetImplicitHideAnimation(ContrastGrid, fadeOutAnimation);
             ElementCompositionPreview.SetImplicitHideAnimation(ExposureGrid, fadeOutAnimation);
             ElementCompositionPreview.SetImplicitHideAnimation(SaturationGrid, fadeOutAnimation);
             ElementCompositionPreview.SetImplicitHideAnimation(BlurGrid, fadeOutAnimation);
