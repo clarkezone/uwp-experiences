@@ -30,6 +30,7 @@ using Microsoft.Graphics.Canvas.UI;
 using Microsoft.Graphics.Canvas.UI.Xaml;
 using NorthwindPhoto.Model;
 using Windows.UI.Xaml.Media.Animation;
+using Windows.UI.Xaml.Media.Imaging;
 
 namespace NorthwindPhoto
 {
@@ -61,12 +62,15 @@ namespace NorthwindPhoto
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
+            _photo = e.Parameter as Photo;
+
+            animationTarget.Source = new BitmapImage(new Uri(_photo.Path));
+
             ConnectedAnimationService
                 .GetForCurrentView()
                 .GetAnimation("Image")
-                .TryStart(CanvasControl);
-
-            _photo = e.Parameter as Photo;
+                .TryStart(animationTarget);
+            
             _compositor = ElementCompositionPreview.GetElementVisual(this)?.Compositor;
             _propertySet = _compositor.CreatePropertySet();
             _propertySet.InsertVector3("Contrast", new Vector3());
@@ -82,7 +86,7 @@ namespace NorthwindPhoto
         protected override void OnNavigatingFrom(NavigatingCancelEventArgs e)
         {
             base.OnNavigatingFrom(e);
-            ConnectedAnimationService.GetForCurrentView().PrepareToAnimate("Image", CanvasControl);
+            ConnectedAnimationService.GetForCurrentView().PrepareToAnimate("Image", animationTarget);
         }
 
         protected override void OnNavigatedFrom(NavigationEventArgs e)

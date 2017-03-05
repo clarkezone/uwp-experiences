@@ -23,6 +23,7 @@ using Windows.UI.Xaml.Navigation;
 using NorthwindPhoto.Model;
 using Windows.Foundation;
 using Windows.UI.Xaml.Media.Animation;
+using System.Diagnostics;
 
 // The Blank Page item template is documented at https://go.microsoft.com/fwlink/?LinkId=234238
 
@@ -53,36 +54,13 @@ namespace NorthwindPhoto
         }
 
         /// <summary>
-        /// TODO: 1.Show/Hide
-        /// When the image is being loaded into the container a show/hide animation is being applied
+        /// Hook up lights for hover
         /// </summary>
         private void PhotoCollectionViewer_ChoosingItemContainer(ListViewBase sender,
             ChoosingItemContainerEventArgs args)
         {
             bool isInCollection = false;
             args.ItemContainer = args.ItemContainer ?? new GridViewItem();
-
-            // Set up show and hide animations for this item container.
-            // Need to handle ChoosingItemContainer to set up animations before the element is added to the tree.
-
-            // Setup Show animations. This should only play when 
-            // the app is loaded first or when coming back here from collage page
-
-            //var itemsPanel = (ItemsWrapGrid)this.PhotoCollectionViewer.ItemsPanelRoot;
-
-            //var itemIndex = this.PhotoCollectionViewer.IndexFromContainer(args.ItemContainer);
-
-            //var relativeIndex = itemIndex - itemsPanel.FirstVisibleIndex;
-
-            //// Don't animate if we're not in the visible viewport
-            //if (itemIndex >= 0 && itemIndex >= itemsPanel.FirstVisibleIndex && itemIndex <= itemsPanel.LastVisibleIndex)
-            //{
-            //    ElementCompositionPreview.SetImplicitShowAnimation(args.ItemContainer, SetupDefaultShowAnimation(args.ItemIndex));
-            //    ElementCompositionPreview.SetImplicitHideAnimation(args.ItemContainer, SetupDefaultHideAnimation(args.ItemIndex));
-            //}
-
-            //Target each item that is added to the gridView
-            //TODO: Untarget when an item is unloaded.
 
             foreach (Visual v in spotLight.Targets)
             {
@@ -101,6 +79,7 @@ namespace NorthwindPhoto
 
         }
 
+        #region Staggering animation
         private void PhotoCollectionViewer_ContainerContentChanging(ListViewBase sender, ContainerContentChangingEventArgs args)
         {
             args.ItemContainer.Loaded += ItemContainer_Loaded;
@@ -120,32 +99,21 @@ namespace NorthwindPhoto
             if (itemIndex >= 0 && itemIndex >= itemsPanel.FirstVisibleIndex && itemIndex <= itemsPanel.LastVisibleIndex)
             {
                 var itemVisual = ElementCompositionPreview.GetElementVisual(uc);
-
-                float width = (float)uc.RenderSize.Width;
-                float height = (float)uc.RenderSize.Height;
-                itemVisual.Size = new Vector2(width, height);
-                //itemVisual.CenterPoint = new Vector3(width / 2, height / 2, 0f);
-                //itemVisual.Scale = new Vector3(1, 1, 1);
-                itemVisual.Opacity = 0f;
+                ElementCompositionPreview.SetIsTranslationEnabled(uc, true);
 
                 // Create KeyFrameAnimations
                 KeyFrameAnimation offsetAnimation = _compositor.CreateScalarKeyFrameAnimation();
                 offsetAnimation.InsertExpressionKeyFrame(0f, "100");
                 offsetAnimation.InsertExpressionKeyFrame(1f, "0");
-                offsetAnimation.Duration = TimeSpan.FromMilliseconds(800);
+                offsetAnimation.DelayBehavior = AnimationDelayBehavior.SetInitialValueBeforeDelay;
+                offsetAnimation.Duration = TimeSpan.FromMilliseconds(1800);
                 offsetAnimation.DelayTime = TimeSpan.FromMilliseconds(relativeIndex * 50);
-
-                //Vector3KeyFrameAnimation scaleAnimation = _compositor.CreateVector3KeyFrameAnimation();
-                //scaleAnimation.InsertKeyFrame(0, new Vector3(1f, 1f, 0f));
-                //scaleAnimation.InsertKeyFrame(0.1f, new Vector3(0.05f, 0.05f, 0.05f));
-                //scaleAnimation.InsertKeyFrame(1f, new Vector3(1f, 1f, 0f));
-                //scaleAnimation.Duration = TimeSpan.FromMilliseconds(1000);
-                //scaleAnimation.DelayTime = TimeSpan.FromMilliseconds(relativeIndex * 100);
 
                 KeyFrameAnimation fadeAnimation = _compositor.CreateScalarKeyFrameAnimation();
                 fadeAnimation.InsertExpressionKeyFrame(0f, "0");
                 fadeAnimation.InsertExpressionKeyFrame(1f, "1");
-                fadeAnimation.Duration = TimeSpan.FromMilliseconds(400);
+                fadeAnimation.DelayBehavior = AnimationDelayBehavior.SetInitialValueBeforeDelay;
+                fadeAnimation.Duration = TimeSpan.FromMilliseconds(1800);
                 fadeAnimation.DelayTime = TimeSpan.FromMilliseconds(relativeIndex * 50);
 
                 // Start animations
@@ -153,9 +121,14 @@ namespace NorthwindPhoto
                 //itemVisual.StartAnimation("Scale", scaleAnimation);
                 itemVisual.StartAnimation("Opacity", fadeAnimation);
             }
+            else
+            {
+                Debug.WriteLine("sss");
+            }
 
             itemContainer.Loaded -= this.ItemContainer_Loaded;
-        }
+        } 
+        #endregion
 
         #region Pointer Entered / Exit
 
@@ -334,49 +307,5 @@ namespace NorthwindPhoto
         }
         #endregion
 
-        #region showHideAnimations
-        private CompositionAnimationGroup SetupDefaultShowAnimation(int index)
-        {
-            // Set up show and hide animations for this item container.
-
-            // Need to handle ChoosingItemContainer to set up animations before the element is added to the tree.
-
-            var fadeIn = _compositor.CreateScalarKeyFrameAnimation();
-            fadeIn.Target = "Opacity";
-            fadeIn.Duration = TimeSpan.FromMilliseconds(_animationDuration);
-            fadeIn.InsertKeyFrame(0, 0);
-            fadeIn.InsertKeyFrame(1, 1);
-            fadeIn.DelayBehavior = AnimationDelayBehavior.SetInitialValueBeforeDelay;
-
-            // Add a staggering delay factor to the entrance
-            fadeIn.DelayTime = TimeSpan.FromMilliseconds(_animationDuration * 0.125 * index);
-            var scaleIn = _compositor.CreateVector3KeyFrameAnimation();
-            scaleIn.Target = "Scale";
-            scaleIn.Duration = TimeSpan.FromMilliseconds(_animationDuration);
-            scaleIn.InsertKeyFrame(0f, new System.Numerics.Vector3(1.2f, 1.2f, 1.2f));
-            scaleIn.InsertKeyFrame(1f, new System.Numerics.Vector3(1f, 1f, 1f));
-            scaleIn.DelayBehavior = AnimationDelayBehavior.SetInitialValueBeforeDelay;
-            scaleIn.DelayTime = TimeSpan.FromMilliseconds(_animationDuration * 0.125 * index);
-
-            var animationFadeInGroup = _compositor.CreateAnimationGroup();
-            animationFadeInGroup.Add(fadeIn);
-            animationFadeInGroup.Add(scaleIn);
-            return animationFadeInGroup;
-        }
-
-        private CompositionAnimationGroup SetupDefaultHideAnimation(int index)
-        {
-            ScalarKeyFrameAnimation fadeOut = _compositor.CreateScalarKeyFrameAnimation();
-            fadeOut.Target = "Opacity";
-            fadeOut.Duration = TimeSpan.FromMilliseconds(_animationDuration);
-            fadeOut.InsertKeyFrame(1, 0);
-
-            var hideAnimation = _compositor.CreateAnimationGroup();
-            hideAnimation.Add(fadeOut);
-            return hideAnimation;
-        }
-        #endregion
-
-        
     }
 }
