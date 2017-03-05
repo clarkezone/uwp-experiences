@@ -55,6 +55,8 @@ namespace NorthwindPhoto
         private RadialController _radialController;
         private string _selectedControl;
 
+        private CompositionScopedBatch _connectedBatch;
+
         public ImageEditingPage()
         {
             InitializeComponent();
@@ -62,16 +64,19 @@ namespace NorthwindPhoto
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
         {
+            _compositor = ElementCompositionPreview.GetElementVisual(this)?.Compositor;
+
             _photo = e.Parameter as Photo;
 
             animationTarget.Source = new BitmapImage(new Uri(_photo.Path));
 
-            ConnectedAnimationService
-                .GetForCurrentView()
-                .GetAnimation("Image")
-                .TryStart(animationTarget);
-            
-            _compositor = ElementCompositionPreview.GetElementVisual(this)?.Compositor;
+            var animation = ConnectedAnimationService.GetForCurrentView().GetAnimation("Image");
+            animation.Completed += (s, st) => {
+                CanvasControl.Visibility = Visibility.Visible;
+                animationTarget.Visibility = Visibility.Collapsed;
+            };
+            animation.TryStart(animationTarget);
+
             _propertySet = _compositor.CreatePropertySet();
             _propertySet.InsertVector3("Contrast", new Vector3());
             _propertySet.InsertVector3("Saturation", new Vector3(2f, 2f, 2f));
@@ -86,6 +91,7 @@ namespace NorthwindPhoto
         protected override void OnNavigatingFrom(NavigatingCancelEventArgs e)
         {
             base.OnNavigatingFrom(e);
+            animationTarget.Visibility = Visibility.Visible;
             ConnectedAnimationService.GetForCurrentView().PrepareToAnimate("Image", animationTarget);
         }
 

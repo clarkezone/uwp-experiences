@@ -46,7 +46,7 @@ namespace NorthwindPhoto
 
         private float durationHover = 500;
         private float shadowDistance = 5;
-        private static int persistedItemIndex;
+        private static int persistedItemIndex = -1;
 
         public Gallery()
         {
@@ -96,7 +96,7 @@ namespace NorthwindPhoto
 
             var uc = itemContainer.ContentTemplateRoot as Grid;
 
-            if (itemIndex >= 0 && itemIndex >= itemsPanel.FirstVisibleIndex && itemIndex <= itemsPanel.LastVisibleIndex)
+            if (itemIndex != persistedItemIndex && itemIndex >= 0 && itemIndex >= itemsPanel.FirstVisibleIndex && itemIndex <= itemsPanel.LastVisibleIndex)
             {
                 var itemVisual = ElementCompositionPreview.GetElementVisual(uc);
                 ElementCompositionPreview.SetIsTranslationEnabled(uc, true);
