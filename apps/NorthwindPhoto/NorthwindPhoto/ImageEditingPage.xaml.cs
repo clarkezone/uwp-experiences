@@ -68,14 +68,35 @@ namespace NorthwindPhoto
 
             _photo = e.Parameter as Photo;
 
-            animationTarget.Source = new BitmapImage(new Uri(_photo.Path));
+            var image = new BitmapImage(new Uri(_photo.Path));
 
-            var animation = ConnectedAnimationService.GetForCurrentView().GetAnimation("Image");
-            animation.Completed += (s, st) => {
-                CanvasControl.Visibility = Visibility.Visible;
-                animationTarget.Visibility = Visibility.Collapsed;
+            image.ImageOpened += (sender, ev) =>
+            {
+                var animation = ConnectedAnimationService.GetForCurrentView().GetAnimation("Image");
+                animation.Completed += (s, st) =>
+                {
+                    var item = FindName("CanvasControl");
+
+                    Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () => {
+                        CanvasControl.Opacity = 1;
+                        animationTarget.Opacity = 0;
+                    });
+
+                    //var fadeInAnimation = _compositor.CreateScalarKeyFrameAnimation();
+                    //fadeInAnimation.InsertKeyFrame(0f, 0f);
+                    //fadeInAnimation.InsertKeyFrame(1f, 1f);
+                    //fadeInAnimation.Target = "Opacity";
+                    //fadeInAnimation.DelayBehavior = AnimationDelayBehavior.SetInitialValueBeforeDelay;
+                    //fadeInAnimation.DelayTime = TimeSpan.FromMilliseconds(250);
+                    //fadeInAnimation.Duration = TimeSpan.FromMilliseconds(750);
+
+                    //ElementCompositionPreview.SetImplicitShowAnimation(CanvasControl, fadeInAnimation);
+
+                };
+                animation.TryStart(animationTarget);
             };
-            animation.TryStart(animationTarget);
+
+            animationTarget.Source = image;
 
             _propertySet = _compositor.CreatePropertySet();
             _propertySet.InsertVector3("Contrast", new Vector3());
@@ -88,10 +109,16 @@ namespace NorthwindPhoto
             SetupDialControl();
         }
 
+        private void Image_ImageOpened(object sender, RoutedEventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
         protected override void OnNavigatingFrom(NavigatingCancelEventArgs e)
         {
             base.OnNavigatingFrom(e);
             animationTarget.Visibility = Visibility.Visible;
+            animationTarget.Opacity = 1;
             ConnectedAnimationService.GetForCurrentView().PrepareToAnimate("Image", animationTarget);
         }
 
@@ -361,8 +388,8 @@ namespace NorthwindPhoto
             offsetInAnimation.Target = "Offset";
             offsetInAnimation.Duration = TimeSpan.FromMilliseconds(250);
 
-            ElementCompositionPreview.SetImplicitShowAnimation(CanvasControl, fadeInAnimation);
-            ElementCompositionPreview.SetImplicitShowAnimation(CanvasControl, offsetInAnimation);
+            //ElementCompositionPreview.SetImplicitShowAnimation(CanvasControl, fadeInAnimation);
+            //ElementCompositionPreview.SetImplicitShowAnimation(CanvasControl, offsetInAnimation);
 
             fadeInAnimation.Duration = TimeSpan.FromMilliseconds(1500);
             ElementCompositionPreview.SetImplicitShowAnimation(ContrastGrid, fadeInAnimation);
@@ -371,8 +398,8 @@ namespace NorthwindPhoto
             ElementCompositionPreview.SetImplicitShowAnimation(BlurGrid, fadeInAnimation);
             ElementCompositionPreview.SetImplicitShowAnimation(TwitterLogo, fadeInAnimation);
 
-            ElementCompositionPreview.SetImplicitHideAnimation(CanvasControl, fadeOutAnimation);
-            ElementCompositionPreview.SetImplicitHideAnimation(ContrastGrid, fadeOutAnimation);
+            //ElementCompositionPreview.SetImplicitHideAnimation(CanvasControl, fadeOutAnimation);
+            //ElementCompositionPreview.SetImplicitHideAnimation(ContrastGrid, fadeOutAnimation);
             ElementCompositionPreview.SetImplicitHideAnimation(ExposureGrid, fadeOutAnimation);
             ElementCompositionPreview.SetImplicitHideAnimation(SaturationGrid, fadeOutAnimation);
             ElementCompositionPreview.SetImplicitHideAnimation(BlurGrid, fadeOutAnimation);

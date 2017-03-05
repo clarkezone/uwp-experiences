@@ -44,7 +44,8 @@
                              RelativePanel.AlignLeftWithPanel="True"
                              RelativePanel.AlignRightWithPanel="True"
                              RelativePanel.AlignBottomWithPanel="True"
-                             Visibility="Collapsed"
+                             x:DeferLoadStrategy="Lazy"
+                             Opacity="0"
                              />
 
         <Image x:Name="animationTarget"

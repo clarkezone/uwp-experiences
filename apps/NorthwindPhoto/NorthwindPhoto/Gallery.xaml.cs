@@ -169,6 +169,7 @@ namespace NorthwindPhoto
             persistedItemIndex = PhotoCollectionViewer.Items.IndexOf(e.ClickedItem);
             PhotoCollectionViewer.PrepareConnectedAnimation("Image", e.ClickedItem, "Image");
 
+
             App.MainFrame.Navigate(typeof(ImageEditingPage), e.ClickedItem as Photo);
         }
 
