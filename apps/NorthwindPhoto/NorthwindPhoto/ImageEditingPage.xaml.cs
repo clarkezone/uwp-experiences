@@ -72,13 +72,16 @@ namespace NorthwindPhoto
             image.ImageOpened += (sender, ev) =>
             {
                 var animation = ConnectedAnimationService.GetForCurrentView().GetAnimation("Image");
-                animation.Completed += (s, st) =>
+                animation.Completed += async (s, st) =>
                 {
-                    //var item = FindName("CanvasControl");
+                    var item = FindName("CanvasControl");
 
-                    Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () => {
-                        CanvasControl.Opacity = 1;
-                        animationTarget.Opacity = 0;
+                    await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () => {
+                        if (CanvasControl != null)
+                        {
+                            CanvasControl.Opacity = 1;
+                            animationTarget.Opacity = 0;
+                        }
                     });
 
                     //var fadeInAnimation = _compositor.CreateScalarKeyFrameAnimation();
@@ -396,11 +399,21 @@ namespace NorthwindPhoto
             inGroup.Add(fadeInAnimation);
             inGroup.Add(offsetInAnimation);
 
+            var offsetOutAnimation = _compositor.CreateScalarKeyFrameAnimation();
+            offsetOutAnimation.InsertKeyFrame(0f, 0);
+            offsetOutAnimation.InsertKeyFrame(1f, 100);
+            offsetOutAnimation.Target = "Translation.Y";
+            offsetOutAnimation.Duration = TimeSpan.FromMilliseconds(700);
+
             var fadeOutAnimation = _compositor.CreateScalarKeyFrameAnimation();
             fadeOutAnimation.InsertKeyFrame(0f, 1f);
             fadeOutAnimation.InsertKeyFrame(1f, 0f);
             fadeOutAnimation.Target = "Opacity";
             fadeOutAnimation.Duration = TimeSpan.FromMilliseconds(600);
+
+            var outGroup = _compositor.CreateAnimationGroup();
+            outGroup.Add(fadeOutAnimation);
+            outGroup.Add(offsetOutAnimation);
 
             ElementCompositionPreview.SetIsTranslationEnabled(ContrastGrid, true);
             ElementCompositionPreview.SetIsTranslationEnabled(ExposureGrid, true);
@@ -414,10 +427,10 @@ namespace NorthwindPhoto
             ElementCompositionPreview.SetImplicitShowAnimation(BlurGrid, inGroup);
             ElementCompositionPreview.SetImplicitShowAnimation(TwitterLogo, fadeInAnimation);
 
-            ElementCompositionPreview.SetImplicitHideAnimation(ExposureGrid, fadeOutAnimation);
-            ElementCompositionPreview.SetImplicitHideAnimation(SaturationGrid, fadeOutAnimation);
-            ElementCompositionPreview.SetImplicitHideAnimation(BlurGrid, fadeOutAnimation);
-            ElementCompositionPreview.SetImplicitHideAnimation(TwitterLogo, fadeOutAnimation);
+            ElementCompositionPreview.SetImplicitHideAnimation(ContrastGrid, outGroup);
+            ElementCompositionPreview.SetImplicitHideAnimation(ExposureGrid, outGroup);
+            ElementCompositionPreview.SetImplicitHideAnimation(SaturationGrid, outGroup);
+            ElementCompositionPreview.SetImplicitHideAnimation(BlurGrid, outGroup);
         }
 
         private void HideUnusedRings()
