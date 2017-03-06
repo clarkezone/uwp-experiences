@@ -71,36 +71,16 @@ namespace NorthwindPhoto
 
             image.ImageOpened += (sender, ev) =>
             {
+                animationTarget.Opacity = 1;
                 var animation = ConnectedAnimationService.GetForCurrentView().GetAnimation("Image");
-                animation.Completed += async (s, st) =>
+                animation.Completed += (s, st) =>
                 {
                     var item = FindName("CanvasControl");
-
-                    await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () => {
-                        if (CanvasControl != null)
-                        {
-                            CanvasControl.Opacity = 1;
-                            animationTarget.Opacity = 0;
-                        }
-                    });
-
-                    //var fadeInAnimation = _compositor.CreateScalarKeyFrameAnimation();
-                    //fadeInAnimation.InsertKeyFrame(0f, 0f);
-                    //fadeInAnimation.InsertKeyFrame(1f, 1f);
-                    //fadeInAnimation.Target = "Opacity";
-                    //fadeInAnimation.DelayBehavior = AnimationDelayBehavior.SetInitialValueBeforeDelay;
-                    //fadeInAnimation.DelayTime = TimeSpan.FromMilliseconds(250);
-                    //fadeInAnimation.Duration = TimeSpan.FromMilliseconds(750);
-
-                    //ElementCompositionPreview.SetImplicitShowAnimation(CanvasControl, fadeInAnimation);
-
                 };
-                //animation.TryStart(animationTarget,new[] { TwitterLogo});
                 animation.TryStart(animationTarget);
-                
-                
             };
 
+            animationTarget.Opacity = 0;
             animationTarget.Source = image;
 
             _propertySet = _compositor.CreatePropertySet();
@@ -495,6 +475,8 @@ namespace NorthwindPhoto
         {
             var drawingSession = args.DrawingSession;
             drawingSession.DrawImage(_effect);
+            CanvasControl.Opacity = 1;
+            animationTarget.Opacity = 0;
         }
 
         private async void CanvasControl_CreateResources(CanvasControl sender, CanvasCreateResourcesEventArgs args)

@@ -170,6 +170,13 @@ namespace NorthwindPhoto
             PhotoCollectionViewer.PrepareConnectedAnimation("Image", e.ClickedItem, "Image");
 
 
+            Canvas.SetZIndex(this, 1);
+            var animation = _compositor.CreateScalarKeyFrameAnimation();
+            animation.Target = "Opacity";
+            animation.Duration = TimeSpan.FromSeconds(0.6);
+            animation.InsertKeyFrame(1, 0);
+            ElementCompositionPreview.SetImplicitHideAnimation(this, animation);
+
             App.MainFrame.Navigate(typeof(ImageEditingPage), e.ClickedItem as Photo);
         }
 
