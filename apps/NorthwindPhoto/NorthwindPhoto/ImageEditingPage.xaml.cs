@@ -500,7 +500,7 @@ namespace NorthwindPhoto
 
             using (var ds = _canvasRenderTarget.CreateDrawingSession())
             {
-                ds.DrawImage(_canvasBitmap, new Rect(new Point((Window.Current.Bounds.Width - _canvasBitmap.SizeInPixels.Width) / 2, 0), _canvasBitmap.Size));
+                ds.DrawImage(_canvasBitmap, new Rect(new Point(0, 0), animationTarget.RenderSize));
             }
 
             var blur = new GaussianBlurEffect
