@@ -53,7 +53,7 @@
                              />
 
         <Image x:Name="animationTarget"
-               Stretch="None"
+               Stretch="UniformToFill"
                RelativePanel.AlignTopWithPanel="True"
                              RelativePanel.AlignLeftWithPanel="True"
                              RelativePanel.AlignRightWithPanel="True"
